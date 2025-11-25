@@ -6,13 +6,13 @@ class Leveler():
         self.xp = 0
         self.xpfornext = 1
     
-    def levelup(self, game):
+    def level_up(self, game):
         self.xp -= self.xpfornext
         self.level += 1
         self.xpfornext *= 2
-        game.MsgQueue.put(Message("Leveled up! New Level -> %s"%(self.level), MessageType.IMPORTANT))
+        #game.MsgQueue.put(Message("Leveled up! New Level -> %s"%(self.level), MessageType.IMPORTANT))
     
-    def addXP(self, xp, game):
+    def add_xp(self, xp, game):
         self.xp += xp
         while self.xp >= self.xpfornext:
             self.levelup(game)

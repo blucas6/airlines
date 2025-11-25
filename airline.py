@@ -4,7 +4,6 @@ import random as rand
 import os
 import copy as copy
 import pickle
-from turtle import color
 from queue import Queue
 from enums import *
 from store import Store
