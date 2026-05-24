@@ -18,17 +18,21 @@ class Leveler():
             self.levelup(game)
 
 class StatTracker():
-    def __init__(self):
-        self.TotalFlights = 0
-        self.TotalRevenue = 0
-        self.AirportRevenue = {}    # { airportcode: total generated revenue }
-        self.PlaneTrips = {}        # { plane ID: {Rank: plane rank, Trips: total trips taken, Passengers: total passengers flown, CpM: cash generated per flight minute} }
+    TotalFlights = 0
+    TotalRevenue = 0
+    AirportRevenue = {}    # { airportcode: total generated revenue }
+    PlaneTrips = {}        # { plane ID: {Rank: plane rank, Trips: total trips taken, Passengers: total passengers flown, CpM: cash generated per flight minute} }
     
-    def getInfo(self, isforplanes):
+    @staticmethod
+    def getInfo(isforplanes):
         if isforplanes:
             return 'Info: T=Total Trips, P=Total Passengers, CpM=Cash generated per flight Minute'
         else:
             return 'Info: Total generated revenue per airport'
+
+    @staticmethod
+    def add_flight(n):
+        StatTracker.TotalFlights += n
 
 class Saver:
     def __init__(self, cash, plane_l, airport_l, store_planes_l, current_time, stat_tracker, xp, level, xpfornext, cloudlist):

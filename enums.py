@@ -1,5 +1,10 @@
 from enum import Enum
 
+class MenuState(Enum):
+    MAIN = 0
+    AIRPORT = 1
+    PLANE = 2
+
 SAVE_FILE_NAME = "save"
 REFRESH_PLANE_MARKET_PRICE = 1
 ALERT_CODE = '►'
@@ -70,23 +75,24 @@ class Color:
     BG_LIGHTGRAY = "\u001b[47m"
 
 class ALOOKUP:
-    lookup = { "None" : ["None", [0,0]],
-            "JFK" : ["New York", [20,10]],
-            "LAX" : ["Los Angeles", [8,11]],
-            "DUB" : ["Dublin", [33,7]],
-            "PEK" : ["Beijing", [65,12]],
-            "YUL" : ["Montreal", [20,8]],
-            "HNL" : ["Honolulu", [3,12]], 
-            "ANC" : ["Anchorage", [4,6]],
-            "GOH" : ["Nuuk", [27,4]],
-            "MAD" : ["Madrid", [35,10]], 
-            "CDG" : ["Paris", [37,9]],
-            "LGW" : ["London", [35,7]],
-            "ATH" : ["Athens", [42,10]],
-            "LED" : ["St. Petersburg", [43,7]], 
-            "MEX" : ["Mexico City", [15,13]],
-            "GIG" : ["Rio de Janeiro", [25,17]],
-            "EZE" : ["Buenos Aires", [22,21]],
-            "LIM" : ["Lima", [16,17]],
-            "CAI" : ["Cairo", [44,13]],
-            "DXB" : ["Dubai", [49,13]]}
+    lookup = {
+            "JFK" : ["New York", [10,19]],
+            "LAX" : ["Los Angeles", [11,7]],
+            "DUB" : ["Dublin", [7,32]],
+            "PEK" : ["Beijing", [12,64]],
+            "YUL" : ["Montreal", [8,19]],
+            "HNL" : ["Honolulu", [12,2]], 
+            "ANC" : ["Anchorage", [6,3]],
+            "GOH" : ["Nuuk", [4,26]],
+            "MAD" : ["Madrid", [10,34]], 
+            "CDG" : ["Paris", [9,36]],
+            "LGW" : ["London", [7,34]],
+            "ATH" : ["Athens", [10,41]],
+            "LED" : ["St. Petersburg", [7,42]], 
+            "MEX" : ["Mexico City", [13,14]],
+            "GIG" : ["Rio de Janeiro", [17,24]],
+            "EZE" : ["Buenos Aires", [21,21]],
+            "LIM" : ["Lima", [17,15]],
+            "CAI" : ["Cairo", [13,43]],
+            "DXB" : ["Dubai", [13,48]]
+            }

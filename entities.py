@@ -46,6 +46,17 @@ class Airport:
         for i in range(rand.randint(1, self.MAX_PASSENGERS)):
             self.passengers.append(Passenger(self.code, rand.randint(0,9999), game))
     
+    def view_parked_planes(self, game):
+        display = ''
+        if len(self.planes) >= 1:
+            for ix,p in enumerate(self.planes):
+                display += p.serial
+                if ix != len(self.planes)-1:
+                    display += ','
+        else:
+            display = 'None'
+        return display 
+
     def viewParkedPlanes(self, game):
         tmp = ""
         if len(self.planes) >= 1:

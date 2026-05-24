@@ -41,10 +41,10 @@ class Engine:
         curses.start_color()
         self.Color = color.Color()
         self.stdscr = stdscr
-        self.termrows, self.termcols = stdscr.getmaxyx()
+        self.termrows, self.termcols = self.stdscr.getmaxyx()
         curses.curs_set(0)
-        stdscr.nodelay(True)
-        stdscr.timeout(self.inputtimeout)
+        self.stdscr.nodelay(True)
+        self.stdscr.timeout(self.inputtimeout)
         if timedelay > 0:
             self.framedelay = timedelay
         if sys.platform == 'win32':
@@ -92,7 +92,10 @@ class Engine:
             if event != curses.ERR:
                 if self.debug:
                     self.log_event(f'"{chr(event)}" ({event})')
-                return chr(event)
+                if event == curses.KEY_RESIZE:
+                    self.termrows, self.termcols = self.stdscr.getmaxyx()
+                else:
+                    return chr(event)
         except Exception as e:
             self.log_event(f'Read input ERROR: {event}')
 
