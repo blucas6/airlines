@@ -1,4 +1,5 @@
 import time
+import curses
 
 import display
 import menustate
@@ -62,10 +63,25 @@ class Game:
         Gets an event (continuously polling)
         '''
         event = self.Display.read_input()
-        if event == 'Q':
+        if event == 'q':
             self.playing = False
-        elif event == '#':
+        elif event == '1':
             self.MenuManager.showborder = not self.MenuManager.showborder
+        elif event == '\n' or self.MenuManager.commandmode:
+            if not self.MenuManager.commandmode and event == '\n':
+                self.MenuManager.commandmode = True
+            elif event == '\n':
+                self.MenuManager.commandmode = False
+                self.execute_command(self.MenuManager.command)
+                self.MenuManager.command = ''
+            elif event != None:
+                if ord(event) == curses.KEY_BACKSPACE:
+                    self.MenuManager.command = self.MenuManager.command[:-1]
+                elif ord(event) == 27:
+                    self.MenuManager.commandmode = False
+                    self.MenuManager.command = ''
+                else:
+                    self.MenuManager.command += event
         elif self.MenuManager.state == enums.MenuState.MAIN:
             if event == 'a':
                 self.MenuManager.state = enums.MenuState.AIRPORT
@@ -106,4 +122,7 @@ class Game:
     
     def page_refresh(self):
         self.MenuManager.update()
+
+    def execute_command(self, cmd):
+        pass
 

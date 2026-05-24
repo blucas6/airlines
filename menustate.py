@@ -50,7 +50,7 @@ class Map(Window):
                 self.add_string(rcount, line.replace('\n', ''), buffer=self.map)
                 rcount += 1
 
-    def update(self, state):
+    def update(self, state, *_):
         super().update()
         self.text = [row[:] for row in self.map]
 
@@ -72,12 +72,32 @@ class Map(Window):
                 self.text[pos[0]][pos[1]] = '+'
                 self.color[pos[0]][pos[1]] = color.Color().yellow
 
+class CommandMenu(Window):
+    def __init__(self, game):
+        origin = [game.Display.Engine.termrows-1,1]
+        super().__init__(game, origin=origin, rows=1, cols=config.MAP_SIDELINE)
+        self.cmd = ''
+        self.Game = game
+
+    def update(self, _, command, commandmode):
+        super().update()
+        self.origin = [self.Game.Display.Engine.termrows-2,1]
+        cmd = ''
+        if commandmode:
+            cmd = command
+            for ix in range(self.cols):
+                self.color[0][ix] = color.Color().bg_white_fg_black
+        else:
+            for ix in range(self.cols):
+                self.color[0][ix] = color.Color().white
+        self.add_string(0, f'Commmand: {cmd}')
+
 class MainMenu(Window):
     def __init__(self, game):
         super().__init__(game, origin=[9,1], rows=20, cols=config.MAP_SIDELINE)
         self.levelbar = 10
 
-    def update(self, state):
+    def update(self, state, *_):
         super().update()
         if state == enums.MenuState.MAIN:
             self.menu_main()
@@ -186,13 +206,15 @@ class MenuManager:
         self.stack = []
         self.showborder = False
         self.state = enums.MenuState.MAIN
+        self.commandmode = False
+        self.command = ''
 
     def init(self, game):
-        self.stack = [Title(game), MainMenu(game), Map(game)]
+        self.stack = [Title(game), MainMenu(game), Map(game), CommandMenu(game)]
 
     def update(self):
         for window in self.stack:
-            window.update(self.state)
+            window.update(self.state, self.command, self.commandmode)
             if self.showborder:
                 window.add_border()
 
