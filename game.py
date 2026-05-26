@@ -173,9 +173,7 @@ class Game:
         Gets an event (continuously polling)
         '''
         event = self.Display.read_input()
-        if event == 'q':
-            self.playing = False
-        elif event == '1':
+        if event == '1':
             self.MenuManager.showborder = not self.MenuManager.showborder
         elif event == '\n' or self.MenuManager.commandmode:
             if not self.MenuManager.commandmode and event == '\n':
@@ -197,6 +195,8 @@ class Game:
                 self.MenuManager.state = enums.MenuState.AIRPORT
             elif event == 'p':
                 self.MenuManager.state = enums.MenuState.PLANE
+            elif event == 'q':
+                self.playing = False
         elif self.MenuManager.state == enums.MenuState.AIRPORT:
             if event == 'b':
                 self.MenuManager.state = enums.MenuState.MAIN
