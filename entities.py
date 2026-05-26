@@ -1,16 +1,23 @@
 import random as rand
+import enums
+import logger
+import config
 import copy as copy
 from enums import *
 import math
 from astar import *
 from commands import *
+import utility
 
 class Passenger:
-    def __init__(self, s, id, game):
+    def __init__(self, s, id, airport_list):
         self.source = s
-        self.dest = self.randDest(game)
-        self.pay = self.calcPay()
+        self.dest = self.rand_dest(airport_list)
+        self.pay = self.calc_pay(self.source, self.dest)
         self.id = id
+
+    def __str__(self):
+        return f'[Passenger|{self.id}|{self.source}|{self.dest}|{self.pay}]'
 
     def randDest(self, game):
         l = []
@@ -22,18 +29,48 @@ class Passenger:
         else:
             return l[rand.randint(0, len(l)-1)]
 
+    def rand_dest(self, airport_list):
+        dests = list(airport_list)
+        if self.source not in dests:
+            logger.Logger.log(f'Error: Passenger random destination failed!')
+            logger.Logger.log(f'\t{self.source} not in airport list {dests}')
+            return 'none'
+        dests.remove(self.source)
+        if len(dests) > 1:
+            return dests[rand.randint(0, len(dests) - 1)]
+        return dests[0]
+
     def calcPay(self): 
         dist = math.dist(ALOOKUP.lookup[self.source][1], ALOOKUP.lookup[self.dest][1])
+        return round(rand.randint(1,10) * dist)
+
+    def calc_pay(self, source, dest): 
+        dist = math.dist(ALOOKUP.lookup[source.code][1], ALOOKUP.lookup[dest.code][1])
         return round(rand.randint(1,10) * dist)
 
 class Airport:
     def __init__(self, code):
         self.code = code
-        self.name = ALOOKUP.lookup[code][0]
-        self.coords = ALOOKUP.lookup[code][1]
+        self.name = enums.AirportLookup[code][0]
+        self.coords = enums.AirportLookup[code][1]
         self.planes = []
         self.passengers = []
-        self.MAX_PASSENGERS = 5
+
+    def __str__(self):
+        return f'[Airport|{self.code}|{self.coords}]'
+
+    def __eq__(self, code):
+        if isinstance(code, str):
+            return self.code == code
+        return False
+
+    def add_passenger(self, passenger):
+        self.passengers.append(passenger)
+
+    def remove_passenger(self, passenger, airport_list):
+        self.passengers.remove(passenger)
+        if len(self.passengers) <= 0:
+            self.refresh_passengers(airport_list)
 
     def landed(self, p_obj):
         self.planes.append(p_obj)
@@ -44,7 +81,12 @@ class Airport:
     def refreshPassengers(self, game):
         self.passengers = []
         for i in range(rand.randint(1, self.MAX_PASSENGERS)):
-            self.passengers.append(Passenger(self.code, rand.randint(0,9999), game))
+            self.add_passenger(Passenger(self.code, rand.randint(0,9999), game))
+
+    def refresh_passengers(self, airport_list):
+        self.passengers = []
+        for _ in range(rand.randint(1, config.MAX_PASSENGERS)):
+            self.add_passenger(Passenger(self, rand.randint(0,9999), airport_list))
     
     def view_parked_planes(self, game):
         display = ''
@@ -74,12 +116,11 @@ class Airport:
 
 class Plane:
     def __init__(self, speed, capacity, fuel, price, st_port, rank, purchased):
-        global ALOOKUP
         self.icon = ">"
         self.rank = rank
         self.id = rand.randint(0, 9999)
         self.serial = "?"
-        self.coords = copy.deepcopy(ALOOKUP.lookup[st_port][1])
+        self.coords = copy.deepcopy(enums.AirportLookup[st_port][1])
 
         self.speed = speed  # squares per hour
         self.capacity = capacity
@@ -100,6 +141,25 @@ class Plane:
 
         self.trip_fuelcost = 0
 
+    def __str__(self):
+        return f'[Plane|{self.serial}|{self.id}|{self.rank}]'
+
+    def __eq__(self, serial):
+        if isinstance(serial, str):
+            return serial == self.serial
+        return False
+
+    def is_full(self):
+        if len(self.passengers) >= self.capacity:
+            return True
+        return False
+
+    def add_passenger(self, passenger):
+        self.passengers.append(passenger)
+
+    def remove_passenger(self, passenger):
+        self.passengers.remove(passenger)
+
     def assignSerial(self):
         global Plane_Serial
         Plane_Serial += 1
@@ -107,6 +167,13 @@ class Plane:
             return False
         self.serial = chr(Plane_Serial-1)
         return True
+
+    def update_plane(self, secs):
+        if self.status == PlaneState.fly:
+            if not self.has_arrived():
+                self.advance_plane(secs)
+                self.update_flight_time(secs)
+                self.update_icon()
 
     def update(self, secs, game):
         # print("PLANE STATUS:", self.status)
@@ -117,12 +184,27 @@ class Plane:
         if self.status == PlaneState.taking_off:
             self.status = PlaneState.fly
 
+    def update_flight_time(self, secs):
+        self.curr_flight_time += secs/60
+        pos1 = enums.AirportLookup[self.source][1]
+        pos2 = enums.AirportLookup[self.dest][1]
+        dx = pos2[0]-pos1[0]
+        dy = pos2[1]-pos1[1]
+        dist = math.sqrt(dx*dx + dy*dy)
+        self.time_left = dist / self.speed
+
     def updateTime(self, secs):
         self.curr_flight_time += secs/60
         source = [ALOOKUP.lookup[self.source][1][0], ALOOKUP.lookup[self.source][1][1]]
         dest = [ALOOKUP.lookup[self.dest][1][0], ALOOKUP.lookup[self.dest][1][1]]
         dist = math.sqrt((source[0]-dest[0])*(source[0]-dest[0]) + (source[1]-dest[1])*(source[1]-dest[1]))
         self.time_left = dist/self.speed
+
+    def has_arrived(self):
+        goal = enums.AirportLookup[self.dest][1]
+        if round(self.coords[0]) == goal[0] and round(self.coords[1]) == goal[1]:
+            return True
+        return False
 
     def checkIfArrived(self, game):
         if round(self.coords[0]) == ALOOKUP.lookup[self.dest][1][0] and round(self.coords[1]) == ALOOKUP.lookup[self.dest][1][1]:
@@ -167,6 +249,23 @@ class Plane:
         self.status = PlaneState.taking_off
         self.createPath(game)
         self.updateTime(0)
+
+    def create_path(self):
+        st = tuple(enums.AirportLookup[self.source][1])
+        end = tuple(enums.AirportLookup[self.dest][1])
+        pcoords = astar(st, end)
+        for ix, pt in enumerate(pcoords):
+            if ix != 0 and ix != len(pcoords)-1:
+                rdiff = pcoords[ix+1][0] - pcoords[ix-1][0]
+                cdiff = pcoords[ix+1][1] - pcoords[ix-1][1]
+                if rdiff == 0:
+                    self.path.append([pt, '-'])
+                elif cdiff == 0:
+                    self.path.append([pt, '|'])
+                elif (rdiff > 0 and cdiff > 0) or (rdiff < 0 and cdiff < 0):
+                    self.path.append([pt, '\\'])
+                elif (rdiff > 0 and cdiff < 0) or (rdiff < 0 and cdiff > 0):
+                    self.path.append([pt, '/'])
     
     def createPath(self, game):
         st = (ALOOKUP.lookup[self.source][1][0], ALOOKUP.lookup[self.source][1][1])
@@ -193,6 +292,16 @@ class Plane:
         if game.Commands.debugmode.action:
             print(self.path)
 
+    def advance_plane(self, secs):
+        dist = (self.speed / 60 * secs) + self.block_overflow
+        self.block_overflow = dist - math.floor(dist)
+        if math.floor(dist) + self.path_step > len(self.path):
+            self.path_step = len(self.path)-1
+        else:
+            self.path_step += math.floor(dist)
+        if self.path_step < len(self.path):
+            self.coords = self.path[self.path_step][0]
+
     def advancePlane(self, secs, game):
         dist = (self.speed / 60 * secs) + self.block_overflow
         self.block_overflow = dist - math.floor(dist)
@@ -217,6 +326,20 @@ class Plane:
                 return "left"
             else:
                 return "right"
+
+    def update_icon(self):
+        if self.path_step < len(self.path)-1:
+            source = self.path[self.path_step][0]
+            dest = self.path[self.path_step+1][0]
+            d = utility.get_direction_vector(source, dest)
+            if d == 'up':
+                self.icon = '^'
+            elif d == 'right':
+                self.icon = '>'
+            elif d == 'down':
+                self.icon = 'v'
+            else:
+                self.icon = '<'
 
     def updateIcon(self, dir):
         if dir == "up":

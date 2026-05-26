@@ -5,6 +5,7 @@ import logger
 import color
 import enums
 import config
+import messager
 
 class Window:
     def __init__(self, game, origin, rows, cols):
@@ -40,7 +41,7 @@ class Map(Window):
         rows = 30
         cols = 80
         self.map = [[' ' for _ in range(cols)] for _ in range(rows)]
-        super().__init__(game, origin=[0,config.MAP_SIDELINE+1], rows=rows, cols=cols)
+        super().__init__(game, origin=[1,config.MAP_SIDELINE+1], rows=rows, cols=cols)
         with open('world.txt', 'r') as f:
             lines = f.readlines()
             rcount = 0
@@ -55,31 +56,55 @@ class Map(Window):
         self.text = [row[:] for row in self.map]
 
         user = self.Game.User
-        a_view = self.Game.airport_view
+        aview = self.Game.airport_view
+        pview = self.Game.plane_view
+        airport = user.Airports[aview]
+        plane = user.Planes[pview]
 
-        # add highlight
-        if state == enums.MenuState.AIRPORT:
-            a_obj = user.Airports[a_view]
-            for r in range(-1,2,1):
-                for c in range(-1,2,1):
-                    self.text[r+a_obj.coords[0]][c+a_obj.coords[1]] = '*'
-                    self.color[r+a_obj.coords[0]][c+a_obj.coords[1]] = color.Color().bright_yellow
         # add airports
-        for airport in user.Airports:
-            pos = airport.coords
+        for a in user.Airports:
+            pos = a.coords
             if (pos[0] >= 0 and pos[0] < len(self.text) and
                 pos[1] >= 0 and pos[1] < len(self.text[0])):
                 self.text[pos[0]][pos[1]] = '+'
                 self.color[pos[0]][pos[1]] = color.Color().yellow
+        # add highlight
+        if state == enums.MenuState.AIRPORT:
+            pt = airport.coords
+            self.color[pt[0]][pt[1]] = color.Color().bg_grey_fg_yellow
+            '''
+            for r in range(-1,2,1):
+                for c in range(-1,2,1):
+                    self.text[r+a_obj.coords[0]][c+a_obj.coords[1]] = '*'
+                    self.color[r+a_obj.coords[0]][c+a_obj.coords[1]] = color.Color().bright_yellow
+                    '''
+        # add flight paths
+        if plane.path:
+            for path in plane.path:
+                pt = path[0]
+                glyph = path[1]
+                self.text[pt[0]][pt[1]] = glyph
+                self.color[pt[0]][pt[1]] = color.Color().grey
+        # add planes
+        for p in user.Planes:
+            if p.status == enums.PlaneState.fly:
+                if p.rank == 'A':
+                    pcolor = color.Color().red
+                elif p.rank == 'B':
+                    pcolor = color.Color().green
+                elif p.rank == 'C':
+                    pcolor = color.Color().blue
+                self.color[p.coords[0]][p.coords[1]] = pcolor
+                self.text[p.coords[0]][p.coords[1]] = p.icon
 
 class CommandMenu(Window):
     def __init__(self, game):
-        origin = [game.Display.Engine.termrows-1,1]
+        origin = [game.Display.Engine.termrows-2,1]
         super().__init__(game, origin=origin, rows=1, cols=config.MAP_SIDELINE)
         self.cmd = ''
         self.Game = game
 
-    def update(self, _, command, commandmode):
+    def update(self, state, command, commandmode, *_):
         super().update()
         self.origin = [self.Game.Display.Engine.termrows-2,1]
         cmd = ''
@@ -90,11 +115,45 @@ class CommandMenu(Window):
         else:
             for ix in range(self.cols):
                 self.color[0][ix] = color.Color().white
-        self.add_string(0, f'Commmand: {cmd}')
+        self.add_string(0, f' Command: {cmd}')
+
+class MessageMenu(Window):
+    def __init__(self, game):
+        cols = game.Display.Engine.termcols-1
+        super().__init__(game, origin=[0,1], rows=1, cols=cols)
+        self.current_msg = None
+        self.current_color = color.Color().white
+
+    def update(self, state, command, commandmode, player_ack):
+        super().update()
+        self.cols = self.Game.Display.Engine.termcols-1
+        if player_ack:
+            self.current_msg = None
+        if self.current_msg == None:
+            newmsg = messager.Messager.get_message()
+            if newmsg:
+                self.current_msg = newmsg
+                if self.current_msg.msgtype == messager.MsgType.ERROR:
+                    self.current_color = color.Color().red
+                elif self.current_msg.msgtype == messager.MsgType.WARNING:
+                    self.current_color = color.Color().yellow
+                elif self.current_msg.msgtype == messager.MsgType.INFO:
+                    self.current_color = color.Color().white
+                elif self.current_msg.msgtype == messager.MsgType.DEBUG:
+                    self.current_color = color.Color().blue
+                elif self.current_msg.msgtype == messager.MsgType.SUCCESS:
+                    self.current_color = color.Color().green
+        if self.current_msg != None:
+            if len(messager.Messager.queue) > 0:
+                more = ' -- more --'
+            else:
+                more = ''
+            self.add_string(0, self.current_msg.msg + more)
+            self.color[0] = [self.current_color for _ in range(self.cols)]
 
 class MainMenu(Window):
     def __init__(self, game):
-        super().__init__(game, origin=[9,1], rows=20, cols=config.MAP_SIDELINE)
+        super().__init__(game, origin=[10,1], rows=20, cols=config.MAP_SIDELINE)
         self.levelbar = 10
 
     def update(self, state, *_):
@@ -145,16 +204,16 @@ class MainMenu(Window):
         self.add_string(5, " Planes Parked: [%s]" % airport.view_parked_planes(self.Game))
         self.add_string(6, "Choose Psgr to Load (ex. 'LaA'):")
         for ix,p in enumerate(airport.passengers):
-            self.add_string(7+ix, f"(%s) Psgr [%s] - Dest: %s  Pay: $%s" %
-                            (chr(ix+87), p.id, p.dest, p.pay))
+            self.add_string(7+ix, f"(%s) P[%s] Dest:%s - $%s" %
+                    (chr(ix+97), str(p.id).zfill(4), p.dest.code, p.pay))
 
     def menu_plane(self):
         user = self.Game.User
         p_view = self.Game.plane_view
         plane = user.Planes[self.Game.plane_view]
         destination = "none"
-        if plane.dest in enums.ALOOKUP.lookup:
-            destination = enums.ALOOKUP.lookup[plane.dest][0]
+        if plane.dest in enums.AirportLookup:
+            destination = enums.AirportLookup[plane.dest][0]
         flighttime = round(plane.curr_flight_time,1)
         timeleft = round(plane.time_left)
         self.add_string(0, "     -={Planes}=-")
@@ -182,12 +241,12 @@ class MainMenu(Window):
             self.add_string(8, " Fuel Cost: $%s" % plane.trip_fuelcost)
         self.add_string(9, "Passenger List (Remove ex. 'Ra'):")
         for ix,p in enumerate(plane.passengers):
-            self.add_string(10+ix, " (%s) Psgr [%s] - Dest: %s  Pay: $%s" %
-                            (chr(ix+97), p.id, p.dest, p.pay))
+            self.add_string(10+ix, " (%s) P[%s] Dest:%s - $%s" %
+                            (chr(ix+97), p.id, p.dest.code, p.pay))
 
 class Title(Window):
     def __init__(self, game):
-        super().__init__(game, origin=[0,1], rows=9, cols=config.MAP_SIDELINE)
+        super().__init__(game, origin=[1,1], rows=9, cols=config.MAP_SIDELINE)
 
     def update(self, *_):
         super().update()
@@ -210,11 +269,11 @@ class MenuManager:
         self.command = ''
 
     def init(self, game):
-        self.stack = [Title(game), MainMenu(game), Map(game), CommandMenu(game)]
+        self.stack = [Title(game), MainMenu(game), Map(game), CommandMenu(game), MessageMenu(game)]
 
-    def update(self):
+    def update(self, player_ack=False):
         for window in self.stack:
-            window.update(self.state, self.command, self.commandmode)
+            window.update(self.state, self.command, self.commandmode, player_ack)
             if self.showborder:
                 window.add_border()
 

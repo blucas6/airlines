@@ -96,3 +96,25 @@ class ALOOKUP:
             "CAI" : ["Cairo", [13,43]],
             "DXB" : ["Dubai", [13,48]]
             }
+
+AirportLookup = {
+    "JFK" : ["New York", [10,19]],
+    "LAX" : ["Los Angeles", [11,7]],
+    "DUB" : ["Dublin", [7,32]],
+    "PEK" : ["Beijing", [12,64]],
+    "YUL" : ["Montreal", [8,19]],
+    "HNL" : ["Honolulu", [12,2]], 
+    "ANC" : ["Anchorage", [6,3]],
+    "GOH" : ["Nuuk", [4,26]],
+    "MAD" : ["Madrid", [10,34]], 
+    "CDG" : ["Paris", [9,36]],
+    "LGW" : ["London", [7,34]],
+    "ATH" : ["Athens", [10,41]],
+    "LED" : ["St. Petersburg", [7,42]], 
+    "MEX" : ["Mexico City", [13,14]],
+    "GIG" : ["Rio de Janeiro", [17,24]],
+    "EZE" : ["Buenos Aires", [21,21]],
+    "LIM" : ["Lima", [17,15]],
+    "CAI" : ["Cairo", [13,43]],
+    "DXB" : ["Dubai", [13,48]]
+}

@@ -3,6 +3,7 @@ import curses
 import engine
 import color
 import logger
+import menustate
 
 class Display:
     '''Utility class to display screens with an engine class'''
